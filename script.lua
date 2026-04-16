@@ -731,21 +731,10 @@ tScroll.ClipsDescendants = true
 tScroll.ZIndex = 2
 tScroll.Parent = tPage
 
-local selectedLabel = Instance.new("TextLabel")
-selectedLabel.Size = UDim2.new(1, -20, 0, 20)
-selectedLabel.Position = UDim2.new(0, 10, 0, 6)
-selectedLabel.BackgroundTransparency = 1
-selectedLabel.Text = "Selected Target: none"
-selectedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-selectedLabel.Font = Enum.Font.SourceSans
-selectedLabel.TextSize = 13
-selectedLabel.TextXAlignment = Enum.TextXAlignment.Left
-selectedLabel.ZIndex = 3
-selectedLabel.Parent = tScroll
-
+-- "Select Target" button at the top
 local selectBtn = Instance.new("TextButton")
 selectBtn.Size = UDim2.new(1, -20, 0, 28)
-selectBtn.Position = UDim2.new(0, 10, 0, 30)
+selectBtn.Position = UDim2.new(0, 10, 0, 6)
 selectBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 selectBtn.BorderSizePixel = 0
 selectBtn.Text = "Select Target"
@@ -759,8 +748,22 @@ local sbc = Instance.new("UICorner")
 sbc.CornerRadius = UDim.new(0, 4)
 sbc.Parent = selectBtn
 
+-- "Selected" label appears BELOW the button
+local selectedLabel = Instance.new("TextLabel")
+selectedLabel.Size = UDim2.new(1, -20, 0, 18)
+selectedLabel.Position = UDim2.new(0, 10, 0, 40)
+selectedLabel.BackgroundTransparency = 1
+selectedLabel.Text = "Selected: none"
+selectedLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+selectedLabel.Font = Enum.Font.SourceSans
+selectedLabel.TextSize = 12
+selectedLabel.TextXAlignment = Enum.TextXAlignment.Left
+selectedLabel.ZIndex = 3
+selectedLabel.Parent = tScroll
+
 local ROW_H      = 26
 local MAX_LIST_H = 104
+-- Dropdown opens just below the button + label row
 local LIST_Y     = 64
 
 local playerListScroll = Instance.new("ScrollingFrame")
@@ -814,6 +817,18 @@ end
 
 updateActionPositions(0)
 
+-- =========================
+-- DISPLAY NAME HELPER
+-- Returns "username (DisplayName)" if they differ, else just "username"
+-- =========================
+
+local function playerEntryText(p)
+    if p.DisplayName ~= p.Name then
+        return p.Name .. " (" .. p.DisplayName .. ")"
+    end
+    return p.Name
+end
+
 local function refreshPlayerList()
     for _, child in ipairs(playerListScroll:GetChildren()) do
         if child:IsA("TextButton") or child:IsA("TextLabel") then child:Destroy() end
@@ -839,7 +854,8 @@ local function refreshPlayerList()
             local pBtn = Instance.new("TextButton")
             pBtn.Size = UDim2.new(1, 0, 0, ROW_H)
             pBtn.BackgroundTransparency = 1
-            pBtn.Text = p.Name
+            -- Show "Username (DisplayName)" or just "Username" if they match
+            pBtn.Text = playerEntryText(p)
             pBtn.TextColor3 = Color3.fromRGB(195, 195, 195)
             pBtn.Font = Enum.Font.SourceSans
             pBtn.TextSize = 13
@@ -862,7 +878,8 @@ local function refreshPlayerList()
             local captured = p
             pBtn.MouseButton1Click:Connect(function()
                 selectedTarget = captured
-                selectedLabel.Text = "Selected Target: " .. captured.Name
+                -- Mirror the same "Username (DisplayName)" format in the label
+                selectedLabel.Text = "Selected: " .. playerEntryText(captured)
                 listOpen = false
                 playerListScroll.Visible = false
                 updateActionPositions(0)
@@ -938,7 +955,7 @@ end)
 Players.PlayerRemoving:Connect(function(player)
     if selectedTarget == player then
         selectedTarget = nil
-        selectedLabel.Text = "Selected Target: none"
+        selectedLabel.Text = "Selected: none"
     end
     if listOpen then refreshPlayerList() end
 end)
