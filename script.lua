@@ -17,13 +17,112 @@ local isFlying      = false
 local tracked       = {}
 local guiEnabled    = true
 
+-- forward declare so callbacks can reference before definition
+local applyTheme
+
+-- =========================
+-- THEMES
+-- =========================
+
+local THEMES = {
+    {
+        id = "Default", name = "Default",
+        menuBg        = Color3.fromRGB(35,35,35),
+        topBarBg      = Color3.fromRGB(22,22,22),
+        sidebarBg     = Color3.fromRGB(27,27,27),
+        divider       = Color3.fromRGB(50,50,50),
+        stroke        = Color3.fromRGB(255,255,255),
+        accent        = Color3.fromRGB(215,215,215),
+        sideSelected  = Color3.fromRGB(44,44,44),
+        sideHover     = Color3.fromRGB(35,35,35),
+        sideNormal    = Color3.fromRGB(27,27,27),
+        labelSel      = Color3.fromRGB(240,240,240),
+        labelNorm     = Color3.fromRGB(125,125,125),
+        pageTitle     = Color3.fromRGB(108,108,108),
+        toggleOn      = Color3.fromRGB(120,120,120),
+        toggleOff     = Color3.fromRGB(55,55,55),
+        sliderFill    = Color3.fromRGB(180,180,180),
+        sliderTrack   = Color3.fromRGB(55,55,55),
+        btnBg         = Color3.fromRGB(50,50,50),
+        dropdownBg    = Color3.fromRGB(27,27,27),
+        dropdownStroke= Color3.fromRGB(60,60,60),
+        gradient      = false,
+    },
+    {
+        id = "Amethyst", name = "Amethyst",
+        menuBg        = Color3.fromRGB(28,18,42),
+        topBarBg      = Color3.fromRGB(18,10,32),
+        sidebarBg     = Color3.fromRGB(22,13,36),
+        divider       = Color3.fromRGB(70,40,100),
+        stroke        = Color3.fromRGB(190,100,255),
+        accent        = Color3.fromRGB(190,100,255),
+        sideSelected  = Color3.fromRGB(55,30,80),
+        sideHover     = Color3.fromRGB(38,20,55),
+        sideNormal    = Color3.fromRGB(22,13,36),
+        labelSel      = Color3.fromRGB(220,160,255),
+        labelNorm     = Color3.fromRGB(140,90,180),
+        pageTitle     = Color3.fromRGB(160,80,220),
+        toggleOn      = Color3.fromRGB(165,70,230),
+        toggleOff     = Color3.fromRGB(55,30,80),
+        sliderFill    = Color3.fromRGB(185,95,255),
+        sliderTrack   = Color3.fromRGB(55,30,80),
+        btnBg         = Color3.fromRGB(70,30,110),
+        dropdownBg    = Color3.fromRGB(28,15,44),
+        dropdownStroke= Color3.fromRGB(100,50,150),
+        gradient      = true,
+        gradColor0    = Color3.fromRGB(28,18,42),
+        gradColor1    = Color3.fromRGB(52,16,76),
+    },
+    {
+        id = "Ocean", name = "Ocean",
+        menuBg        = Color3.fromRGB(235, 252, 255),
+        topBarBg      = Color3.fromRGB(29, 77, 107),
+        sidebarBg     = Color3.fromRGB(235, 252, 255),
+        divider       = Color3.fromRGB(217, 220, 214),
+        stroke        = Color3.fromRGB(217, 220, 214),
+        accent        = Color3.fromRGB(217, 220, 214),
+        sideSelected  = Color3.fromRGB(15,55,80),
+        sideHover     = Color3.fromRGB(12,42,62),
+        sideNormal    = Color3.fromRGB(20, 45, 69),
+        labelSel      = Color3.fromRGB(255, 255, 255),
+        labelNorm     = Color3.fromRGB(255, 255, 255),
+        pageTitle     = Color3.fromRGB(255, 255, 255),
+        toggleOn      = Color3.fromRGB(129, 195, 215),
+        toggleOff     = Color3.fromRGB(20,58,80),
+        sliderFill    = Color3.fromRGB(129, 195, 215),
+        sliderTrack   = Color3.fromRGB(20,58,80),
+        btnBg         = Color3.fromRGB(15,65,95),
+        dropdownBg    = Color3.fromRGB(10,28,45),
+        dropdownStroke= Color3.fromRGB(217, 220, 214),
+        gradient      = true,
+        gradColor0    = Color3.fromRGB(0, 126, 167),
+        gradColor1    = Color3.fromRGB(13, 75, 105),
+    },
+}
+
+local currentTheme = THEMES[1]
+
+-- Refs collected as UI is built; used by applyTheme
+local themedRefs = {
+    toggles      = {},   -- { track, getState }
+    sliderFills  = {},   -- Frame
+    sliderTracks = {},   -- Frame
+    buttons      = {},   -- { btn, bgRef }  bgRef = { color = Color3 }
+    pageTitles   = {},   -- TextLabel
+    pageDividers = {},   -- Frame
+}
+
+-- gradient instances created on demand
+local menuGradient    = nil
+local sidebarGradient = nil
+
 -- =========================
 -- FLIGHT STATE
 -- =========================
 
-local flyBV       = nil
-local flyBG       = nil
-local FLY_SPEED   = 60
+local flyBV     = nil
+local flyBG     = nil
+local FLY_SPEED = 60
 
 local function stopFlight()
     isFlying = false
@@ -206,7 +305,7 @@ local menu = Instance.new("Frame")
 menu.Size = UDim2.new(0, 375, 0, 340)
 menu.AnchorPoint = Vector2.new(0.5, 0.5)
 menu.Position = UDim2.new(0.5, 0, 0.5, 0)
-menu.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+menu.BackgroundColor3 = currentTheme.menuBg
 menu.BorderSizePixel = 0
 menu.ClipsDescendants = true
 menu.Active = true
@@ -218,15 +317,15 @@ menuCorner.CornerRadius = UDim.new(0, 6)
 menuCorner.Parent = menu
 
 local menuStroke = Instance.new("UIStroke")
-menuStroke.Color = Color3.fromRGB(255, 255, 255)
-menuStroke.Thickness = 1
+menuStroke.Color = currentTheme.stroke
+menuStroke.Thickness = 1.2
 menuStroke.Parent = menu
 
 -- TOP BAR
 local topBar = Instance.new("Frame")
 topBar.Size = UDim2.new(1, 0, 0, 29)
 topBar.Position = UDim2.new(0, 0, 0, 0)
-topBar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+topBar.BackgroundColor3 = currentTheme.topBarBg
 topBar.BorderSizePixel = 0
 topBar.ZIndex = 2
 topBar.Parent = menu
@@ -252,7 +351,7 @@ minimizeBtn.Size = UDim2.new(0, 28, 1, 0)
 minimizeBtn.Position = UDim2.new(1, -56, 0, 0)
 minimizeBtn.BackgroundTransparency = 1
 minimizeBtn.Text = "-"
-minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 minimizeBtn.TextSize = 18
 minimizeBtn.Font = Enum.Font.SourceSansBold
 minimizeBtn.ZIndex = 3
@@ -263,7 +362,7 @@ closeBtn.Size = UDim2.new(0, 28, 1, 0)
 closeBtn.Position = UDim2.new(1, -28, 0, 0)
 closeBtn.BackgroundTransparency = 1
 closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.TextSize = 13
 closeBtn.Font = Enum.Font.SourceSansBold
 closeBtn.ZIndex = 3
@@ -273,7 +372,7 @@ closeBtn.Parent = topBar
 local sidebar = Instance.new("Frame")
 sidebar.Size = UDim2.new(0, 85, 1, -29)
 sidebar.Position = UDim2.new(0, 0, 0, 29)
-sidebar.BackgroundColor3 = Color3.fromRGB(27, 27, 27)
+sidebar.BackgroundColor3 = currentTheme.sidebarBg
 sidebar.BorderSizePixel = 0
 sidebar.ZIndex = 2
 sidebar.Parent = menu
@@ -285,7 +384,7 @@ sidebarCorner.Parent = sidebar
 local sideDivider = Instance.new("Frame")
 sideDivider.Size = UDim2.new(0, 1, 1, -29)
 sideDivider.Position = UDim2.new(0, 85, 0, 29)
-sideDivider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+sideDivider.BackgroundColor3 = currentTheme.divider
 sideDivider.BorderSizePixel = 0
 sideDivider.ZIndex = 2
 sideDivider.Parent = menu
@@ -301,7 +400,6 @@ contentFrame.Parent = menu
 
 -- =========================
 -- SIDEBAR SECTIONS + PAGE FRAMES
--- (Teleport removed)
 -- =========================
 
 local sidebarSections = {
@@ -320,10 +418,10 @@ local function switchPage(id)
     for sid, btn in pairs(sidebarBtns) do
         local sel = (sid == id)
         TweenService:Create(btn.item, TweenInfo.new(0.12), {
-            BackgroundColor3 = sel and Color3.fromRGB(44, 44, 44) or Color3.fromRGB(27, 27, 27),
+            BackgroundColor3 = sel and currentTheme.sideSelected or currentTheme.sideNormal,
         }):Play()
         btn.accent.Visible = sel
-        btn.lbl.TextColor3 = sel and Color3.fromRGB(240, 240, 240) or Color3.fromRGB(125, 125, 125)
+        btn.lbl.TextColor3 = sel and currentTheme.labelSel or currentTheme.labelNorm
     end
     for pid, pframe in pairs(pageFrames) do
         pframe.Visible = (pid == id)
@@ -337,14 +435,14 @@ for i, sec in ipairs(sidebarSections) do
     local item = Instance.new("Frame")
     item.Size = UDim2.new(1, 0, 0, 44)
     item.Position = UDim2.new(0, 0, 0, (i - 1) * 44)
-    item.BackgroundColor3 = isSelected and Color3.fromRGB(44, 44, 44) or Color3.fromRGB(27, 27, 27)
+    item.BackgroundColor3 = isSelected and currentTheme.sideSelected or currentTheme.sideNormal
     item.BorderSizePixel = 0
     item.ZIndex = 2
     item.Parent = sidebar
 
     local accent = Instance.new("Frame")
     accent.Size = UDim2.new(0, 3, 1, 0)
-    accent.BackgroundColor3 = Color3.fromRGB(215, 215, 215)
+    accent.BackgroundColor3 = currentTheme.accent
     accent.BorderSizePixel = 0
     accent.Visible = isSelected
     accent.ZIndex = 3
@@ -355,7 +453,7 @@ for i, sec in ipairs(sidebarSections) do
     lbl.Position = UDim2.new(0, 6, 0, 0)
     lbl.BackgroundTransparency = 1
     lbl.Text = sec.label
-    lbl.TextColor3 = isSelected and Color3.fromRGB(240, 240, 240) or Color3.fromRGB(125, 125, 125)
+    lbl.TextColor3 = isSelected and currentTheme.labelSel or currentTheme.labelNorm
     lbl.Font = Enum.Font.SourceSansBold
     lbl.TextSize = 12
     lbl.ZIndex = 3
@@ -370,12 +468,12 @@ for i, sec in ipairs(sidebarSections) do
 
     hitBtn.MouseEnter:Connect(function()
         if currentPage ~= sec.id then
-            TweenService:Create(item, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(35, 35, 35) }):Play()
+            TweenService:Create(item, TweenInfo.new(0.1), { BackgroundColor3 = currentTheme.sideHover }):Play()
         end
     end)
     hitBtn.MouseLeave:Connect(function()
         if currentPage ~= sec.id then
-            TweenService:Create(item, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(27, 27, 27) }):Play()
+            TweenService:Create(item, TweenInfo.new(0.1), { BackgroundColor3 = currentTheme.sideNormal }):Play()
         end
     end)
 
@@ -403,7 +501,7 @@ local function makeToggle(parent, labelText, yPos, defaultOn, onChange)
     label.Position = UDim2.new(0, 10, 0, yPos)
     label.BackgroundTransparency = 1
     label.Text = labelText
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
     label.Font = Enum.Font.SourceSans
     label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
@@ -413,7 +511,7 @@ local function makeToggle(parent, labelText, yPos, defaultOn, onChange)
     local track = Instance.new("Frame")
     track.Size = UDim2.new(0, 44, 0, 24)
     track.Position = UDim2.new(1, -54, 0, yPos + 1)
-    track.BackgroundColor3 = defaultOn and Color3.fromRGB(120, 120, 120) or Color3.fromRGB(55, 55, 55)
+    track.BackgroundColor3 = defaultOn and currentTheme.toggleOn or currentTheme.toggleOff
     track.BorderSizePixel = 0
     track.ZIndex = 3
     track.Parent = parent
@@ -456,12 +554,19 @@ local function makeToggle(parent, labelText, yPos, defaultOn, onChange)
             Position = toggled and UDim2.new(0, 22, 0.5, 0) or UDim2.new(0, 2, 0.5, 0),
         }):Play()
         TweenService:Create(track, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = toggled and Color3.fromRGB(120, 120, 120) or Color3.fromRGB(55, 55, 55),
+            BackgroundColor3 = toggled and currentTheme.toggleOn or currentTheme.toggleOff,
         }):Play()
         if not silent and onChange then onChange(toggled) end
     end
 
     hitBtn.MouseButton1Click:Connect(function() setState(not toggled) end)
+
+    -- Register for theming
+    table.insert(themedRefs.toggles, {
+        track    = track,
+        getState = function() return toggled end,
+    })
+
     return { label = label, track = track, knob = knob, isOn = function() return toggled end, set = setState }
 end
 
@@ -485,7 +590,7 @@ local function makeSlider(parent, labelText, yPos)
     local track = Instance.new("Frame")
     track.Size = UDim2.new(1, -20, 0, 8)
     track.Position = UDim2.new(0, 10, 0, yPos + 22)
-    track.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    track.BackgroundColor3 = currentTheme.sliderTrack
     track.BorderSizePixel = 0
     track.ClipsDescendants = false
     track.ZIndex = 3
@@ -497,7 +602,7 @@ local function makeSlider(parent, labelText, yPos)
 
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new(0, 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(180, 180, 180)
+    fill.BackgroundColor3 = currentTheme.sliderFill
     fill.BorderSizePixel = 0
     fill.ZIndex = 4
     fill.Parent = track
@@ -527,11 +632,15 @@ local function makeSlider(parent, labelText, yPos)
     hitArea.ZIndex = 7
     hitArea.Parent = track
 
+    -- Register for theming
+    table.insert(themedRefs.sliderFills,  fill)
+    table.insert(themedRefs.sliderTracks, track)
+
     return { label = label, track = track, fill = fill, knob = knob, hitArea = hitArea }
 end
 
 -- =========================
--- SLIDER LOGIC  (shared helper)
+-- SLIDER LOGIC
 -- =========================
 
 local function connectSlider(s, onAlpha)
@@ -563,15 +672,17 @@ local function connectSlider(s, onAlpha)
 end
 
 -- =========================
--- BUTTON BUILDER  (shared helper)
+-- BUTTON BUILDER
 -- =========================
 
 local function makeButton(parent, labelText, yPos, bgColor)
-    local bg = bgColor or Color3.fromRGB(50, 50, 50)
+    -- bgRef is mutable so applyTheme can update the hover color too
+    local bgRef = { color = bgColor or currentTheme.btnBg }
+
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 28)
     btn.Position = UDim2.new(0, 10, 0, yPos)
-    btn.BackgroundColor3 = bg
+    btn.BackgroundColor3 = bgRef.color
     btn.BorderSizePixel = 0
     btn.Text = labelText
     btn.TextColor3 = Color3.fromRGB(210, 210, 210)
@@ -579,21 +690,28 @@ local function makeButton(parent, labelText, yPos, bgColor)
     btn.TextSize = 13
     btn.ZIndex = 3
     btn.Parent = parent
+
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, 4)
     c.Parent = btn
+
     btn.MouseEnter:Connect(function()
+        local col = bgRef.color
         TweenService:Create(btn, TweenInfo.new(0.1), {
             BackgroundColor3 = Color3.fromRGB(
-                math.clamp(bg.R * 255 + 18, 0, 255),
-                math.clamp(bg.G * 255 + 18, 0, 255),
-                math.clamp(bg.B * 255 + 18, 0, 255)
+                math.clamp(col.R * 255 + 18, 0, 255),
+                math.clamp(col.G * 255 + 18, 0, 255),
+                math.clamp(col.B * 255 + 18, 0, 255)
             ),
         }):Play()
     end)
     btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = bg }):Play()
+        TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = bgRef.color }):Play()
     end)
+
+    -- All buttons tracked; applyTheme sets bgRef.color = theme.btnBg for all
+    table.insert(themedRefs.buttons, { btn = btn, bgRef = bgRef })
+
     return btn
 end
 
@@ -607,7 +725,7 @@ local function makePageTitle(page, text)
     title.Position = UDim2.new(0, 10, 0, 9)
     title.BackgroundTransparency = 1
     title.Text = text
-    title.TextColor3 = Color3.fromRGB(108, 108, 108)
+    title.TextColor3 = currentTheme.pageTitle
     title.Font = Enum.Font.SourceSansBold
     title.TextSize = 11
     title.TextXAlignment = Enum.TextXAlignment.Left
@@ -617,20 +735,25 @@ local function makePageTitle(page, text)
     local line = Instance.new("Frame")
     line.Size = UDim2.new(1, -14, 0, 1)
     line.Position = UDim2.new(0, 7, 0, 28)
-    line.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    line.BackgroundColor3 = currentTheme.divider
     line.BorderSizePixel = 0
     line.ZIndex = 3
     line.Parent = page
+
+    table.insert(themedRefs.pageTitles,   title)
+    table.insert(themedRefs.pageDividers, line)
 end
 
 local function makeDivider(page, yPos)
     local d = Instance.new("Frame")
     d.Size = UDim2.new(1, -14, 0, 1)
     d.Position = UDim2.new(0, 7, 0, yPos)
-    d.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    d.BackgroundColor3 = currentTheme.divider
     d.BorderSizePixel = 0
     d.ZIndex = 3
     d.Parent = page
+
+    table.insert(themedRefs.pageDividers, d)
 end
 
 -- =========================
@@ -681,17 +804,14 @@ makeToggle(vPage, "Skeleton ESP", 138, false, function(state)
     end
 end)
 
--- Forward-declare hitboxSlider so the toggle callback can reference it
 local hitboxSlider
 
 makeToggle(vPage, "Hitboxes", 172, false, function(state)
     showHitboxes = state
-    -- Show/hide the size slider
     if hitboxSlider then
         hitboxSlider.label.Visible = state
         hitboxSlider.track.Visible = state
     end
-    -- Show/hide existing hitbox adorns
     for _, data in pairs(tracked) do
         if data.hitbox then
             data.hitbox.Visible = state and enabled
@@ -701,7 +821,6 @@ end)
 
 makeDivider(vPage, 206)
 
--- Hitbox slider — starts hidden; shown only when Hitboxes toggle is on
 hitboxSlider = makeSlider(vPage, "Hitbox Size: 1", 213)
 hitboxSlider.label.Visible = false
 hitboxSlider.track.Visible = false
@@ -731,14 +850,13 @@ tScroll.ClipsDescendants = true
 tScroll.ZIndex = 2
 tScroll.Parent = tPage
 
--- "Select Target" button at the top
 local selectBtn = Instance.new("TextButton")
 selectBtn.Size = UDim2.new(1, -20, 0, 28)
 selectBtn.Position = UDim2.new(0, 10, 0, 6)
-selectBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+selectBtn.BackgroundColor3 = currentTheme.btnBg
 selectBtn.BorderSizePixel = 0
 selectBtn.Text = "Select Target"
-selectBtn.TextColor3 = Color3.fromRGB(210, 210, 210)
+selectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 selectBtn.Font = Enum.Font.SourceSansBold
 selectBtn.TextSize = 13
 selectBtn.ZIndex = 3
@@ -748,13 +866,16 @@ local sbc = Instance.new("UICorner")
 sbc.CornerRadius = UDim.new(0, 4)
 sbc.Parent = selectBtn
 
--- "Selected" label appears BELOW the button
+-- Track selectBtn for theming (it has its own hover logic, so just update base)
+local selectBtnBgRef = { color = currentTheme.btnBg }
+table.insert(themedRefs.buttons, { btn = selectBtn, bgRef = selectBtnBgRef })
+
 local selectedLabel = Instance.new("TextLabel")
 selectedLabel.Size = UDim2.new(1, -20, 0, 18)
 selectedLabel.Position = UDim2.new(0, 10, 0, 40)
 selectedLabel.BackgroundTransparency = 1
-selectedLabel.Text = "Selected: none"
-selectedLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+selectedLabel.Text = "Selected target: none"
+selectedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 selectedLabel.Font = Enum.Font.SourceSans
 selectedLabel.TextSize = 12
 selectedLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -763,13 +884,12 @@ selectedLabel.Parent = tScroll
 
 local ROW_H      = 26
 local MAX_LIST_H = 104
--- Dropdown opens just below the button + label row
 local LIST_Y     = 64
 
 local playerListScroll = Instance.new("ScrollingFrame")
 playerListScroll.Size = UDim2.new(1, -20, 0, 0)
 playerListScroll.Position = UDim2.new(0, 10, 0, LIST_Y)
-playerListScroll.BackgroundColor3 = Color3.fromRGB(27, 27, 27)
+playerListScroll.BackgroundColor3 = currentTheme.dropdownBg
 playerListScroll.BorderSizePixel = 0
 playerListScroll.ScrollBarThickness = 4
 playerListScroll.ScrollBarImageColor3 = Color3.fromRGB(90, 90, 90)
@@ -784,7 +904,7 @@ plc.CornerRadius = UDim.new(0, 4)
 plc.Parent = playerListScroll
 
 local pls = Instance.new("UIStroke")
-pls.Color = Color3.fromRGB(60, 60, 60)
+pls.Color = currentTheme.dropdownStroke
 pls.Thickness = 1
 pls.Parent = playerListScroll
 
@@ -796,15 +916,16 @@ local listOpen = false
 
 local actDivider = Instance.new("Frame")
 actDivider.Size = UDim2.new(1, -14, 0, 1)
-actDivider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+actDivider.BackgroundColor3 = currentTheme.divider
 actDivider.BorderSizePixel = 0
 actDivider.ZIndex = 3
 actDivider.Parent = tScroll
+table.insert(themedRefs.pageDividers, actDivider)
 
-local teleportBtn = makeButton(tScroll, "Teleport to Target", 0, Color3.fromRGB(80, 80, 80))
+local teleportBtn = makeButton(tScroll, "Teleport to Target", 0, nil)
 teleportBtn.ZIndex = 3
 
-local flingBtn = makeButton(tScroll, "Fling Target", 0, Color3.fromRGB(80, 80, 80))
+local flingBtn = makeButton(tScroll, "Fling Target", 0, nil)
 flingBtn.ZIndex = 3
 
 local function updateActionPositions(listH)
@@ -816,11 +937,6 @@ local function updateActionPositions(listH)
 end
 
 updateActionPositions(0)
-
--- =========================
--- DISPLAY NAME HELPER
--- Returns "username (DisplayName)" if they differ, else just "username"
--- =========================
 
 local function playerEntryText(p)
     if p.DisplayName ~= p.Name then
@@ -854,7 +970,6 @@ local function refreshPlayerList()
             local pBtn = Instance.new("TextButton")
             pBtn.Size = UDim2.new(1, 0, 0, ROW_H)
             pBtn.BackgroundTransparency = 1
-            -- Show "Username (DisplayName)" or just "Username" if they match
             pBtn.Text = playerEntryText(p)
             pBtn.TextColor3 = Color3.fromRGB(195, 195, 195)
             pBtn.Font = Enum.Font.SourceSans
@@ -869,7 +984,7 @@ local function refreshPlayerList()
 
             pBtn.MouseEnter:Connect(function()
                 pBtn.BackgroundTransparency = 0
-                pBtn.BackgroundColor3 = Color3.fromRGB(44, 44, 44)
+                pBtn.BackgroundColor3 = currentTheme.sideHover
             end)
             pBtn.MouseLeave:Connect(function()
                 pBtn.BackgroundTransparency = 1
@@ -878,14 +993,14 @@ local function refreshPlayerList()
             local captured = p
             pBtn.MouseButton1Click:Connect(function()
                 selectedTarget = captured
-                -- Mirror the same "Username (DisplayName)" format in the label
-                selectedLabel.Text = "Selected: " .. playerEntryText(captured)
+                selectedLabel.Text = "Selected target: " .. playerEntryText(captured)
                 listOpen = false
                 playerListScroll.Visible = false
                 updateActionPositions(0)
                 TweenService:Create(selectBtn, TweenInfo.new(0.1), {
-                    BackgroundColor3 = Color3.fromRGB(50, 50, 50),
+                    BackgroundColor3 = currentTheme.btnBg,
                 }):Play()
+                selectBtnBgRef.color = currentTheme.btnBg
             end)
         end
     end
@@ -898,11 +1013,19 @@ local function refreshPlayerList()
 end
 
 selectBtn.MouseEnter:Connect(function()
-    TweenService:Create(selectBtn, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(65, 65, 65) }):Play()
+    if not listOpen then
+        TweenService:Create(selectBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(
+                math.clamp(selectBtnBgRef.color.R * 255 + 18, 0, 255),
+                math.clamp(selectBtnBgRef.color.G * 255 + 18, 0, 255),
+                math.clamp(selectBtnBgRef.color.B * 255 + 18, 0, 255)
+            ),
+        }):Play()
+    end
 end)
 selectBtn.MouseLeave:Connect(function()
     if not listOpen then
-        TweenService:Create(selectBtn, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(50, 50, 50) }):Play()
+        TweenService:Create(selectBtn, TweenInfo.new(0.1), { BackgroundColor3 = selectBtnBgRef.color }):Play()
     end
 end)
 
@@ -912,14 +1035,16 @@ selectBtn.MouseButton1Click:Connect(function()
         refreshPlayerList()
         playerListScroll.Visible = true
         TweenService:Create(selectBtn, TweenInfo.new(0.1), {
-            BackgroundColor3 = Color3.fromRGB(38, 38, 38),
+            BackgroundColor3 = Color3.fromRGB(
+                math.clamp(selectBtnBgRef.color.R * 255 - 12, 0, 255),
+                math.clamp(selectBtnBgRef.color.G * 255 - 12, 0, 255),
+                math.clamp(selectBtnBgRef.color.B * 255 - 12, 0, 255)
+            ),
         }):Play()
     else
         playerListScroll.Visible = false
         updateActionPositions(0)
-        TweenService:Create(selectBtn, TweenInfo.new(0.1), {
-            BackgroundColor3 = Color3.fromRGB(50, 50, 50),
-        }):Play()
+        TweenService:Create(selectBtn, TweenInfo.new(0.1), { BackgroundColor3 = selectBtnBgRef.color }):Play()
     end
 end)
 
@@ -967,7 +1092,6 @@ end)
 local mPage = pageFrames["Movement"]
 makePageTitle(mPage, "MOVEMENT")
 
--- Walk Speed slider
 local wsSlider = makeSlider(mPage, "Walk Speed: 16", 36)
 connectSlider(wsSlider, function(alpha)
     walkSpeed = math.floor(16 + alpha * (300 - 16))
@@ -976,18 +1100,12 @@ end)
 
 makeDivider(mPage, 80)
 
--- Infinite Jump toggle
 makeToggle(mPage, "Infinite Jump", 88, false, function(state)
     infiniteJump = state
 end)
 
--- Flight toggle
 makeToggle(mPage, "Flight", 122, false, function(state)
-    if state then
-        startFlight()
-    else
-        stopFlight()
-    end
+    if state then startFlight() else stopFlight() end
 end)
 
 -- =========================
@@ -1005,23 +1123,331 @@ UserInputService.JumpRequest:Connect(function()
 end)
 
 -- =========================
--- REMAINING EMPTY PAGES
--- (Teleport removed)
+-- SETTINGS PAGE  (theme selector)
 -- =========================
 
-for _, sec in ipairs({ "Settings", "Credits" }) do
-    local page = pageFrames[sec]
-    makePageTitle(page, string.upper(sec))
-    local cs = Instance.new("TextLabel")
-    cs.Size = UDim2.new(1, 0, 1, -50)
-    cs.Position = UDim2.new(0, 0, 0, 50)
-    cs.BackgroundTransparency = 1
-    cs.Text = "Coming Soon"
-    cs.TextColor3 = Color3.fromRGB(62, 62, 62)
-    cs.Font = Enum.Font.SourceSansItalic
-    cs.TextSize = 13
-    cs.ZIndex = 3
-    cs.Parent = page
+local sPage = pageFrames["Settings"]
+makePageTitle(sPage, "SETTINGS")
+
+local sScroll = Instance.new("ScrollingFrame")
+sScroll.Size = UDim2.new(1, 0, 1, -35)
+sScroll.Position = UDim2.new(0, 0, 0, 35)
+sScroll.BackgroundTransparency = 1
+sScroll.BorderSizePixel = 0
+sScroll.ScrollBarThickness = 4
+sScroll.ScrollBarImageColor3 = Color3.fromRGB(90, 90, 90)
+sScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
+sScroll.ClipsDescendants = true
+sScroll.ZIndex = 2
+sScroll.Parent = sPage
+
+-- Section label
+local themeSection = Instance.new("TextLabel")
+themeSection.Size = UDim2.new(1, -20, 0, 16)
+themeSection.Position = UDim2.new(0, 10, 0, 6)
+themeSection.BackgroundTransparency = 1
+themeSection.Text = "APPEARANCE"
+themeSection.TextColor3 = currentTheme.pageTitle
+themeSection.Font = Enum.Font.SourceSansBold
+themeSection.TextSize = 10
+themeSection.TextXAlignment = Enum.TextXAlignment.Left
+themeSection.ZIndex = 3
+themeSection.Parent = sScroll
+table.insert(themedRefs.pageTitles, themeSection)
+
+-- "Change Theme" button
+local themeBtnBgRef = { color = currentTheme.btnBg }
+
+local themePickerBtn = Instance.new("TextButton")
+themePickerBtn.Size = UDim2.new(1, -20, 0, 28)
+themePickerBtn.Position = UDim2.new(0, 10, 0, 26)
+themePickerBtn.BackgroundColor3 = themeBtnBgRef.color
+themePickerBtn.BorderSizePixel = 0
+themePickerBtn.Text = "Change Theme  ▾"
+themePickerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+themePickerBtn.Font = Enum.Font.SourceSansBold
+themePickerBtn.TextSize = 13
+themePickerBtn.ZIndex = 3
+themePickerBtn.Parent = sScroll
+
+local tpbc = Instance.new("UICorner")
+tpbc.CornerRadius = UDim.new(0, 4)
+tpbc.Parent = themePickerBtn
+
+table.insert(themedRefs.buttons, { btn = themePickerBtn, bgRef = themeBtnBgRef })
+
+-- Current theme label
+local currentThemeLabel = Instance.new("TextLabel")
+currentThemeLabel.Size = UDim2.new(1, -20, 0, 18)
+currentThemeLabel.Position = UDim2.new(0, 10, 0, 58)
+currentThemeLabel.BackgroundTransparency = 1
+currentThemeLabel.Text = "Theme: Default"
+currentThemeLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+currentThemeLabel.Font = Enum.Font.SourceSans
+currentThemeLabel.TextSize = 12
+currentThemeLabel.TextXAlignment = Enum.TextXAlignment.Left
+currentThemeLabel.ZIndex = 3
+currentThemeLabel.Parent = sScroll
+
+-- Theme dropdown list
+local THEME_LIST_Y   = 80
+local THEME_ROW_H    = 32
+local THEME_LIST_H   = #THEMES * THEME_ROW_H
+
+local themeListScroll = Instance.new("ScrollingFrame")
+themeListScroll.Size = UDim2.new(1, -20, 0, THEME_LIST_H)
+themeListScroll.Position = UDim2.new(0, 10, 0, THEME_LIST_Y)
+themeListScroll.BackgroundColor3 = currentTheme.dropdownBg
+themeListScroll.BorderSizePixel = 0
+themeListScroll.ScrollBarThickness = 0
+themeListScroll.CanvasSize = UDim2.new(0, 0, 0, THEME_LIST_H)
+themeListScroll.Visible = false
+themeListScroll.ClipsDescendants = true
+themeListScroll.ZIndex = 5
+themeListScroll.Parent = sScroll
+
+local tlc = Instance.new("UICorner")
+tlc.CornerRadius = UDim.new(0, 4)
+tlc.Parent = themeListScroll
+
+local tls = Instance.new("UIStroke")
+tls.Color = currentTheme.dropdownStroke
+tls.Thickness = 1
+tls.Parent = themeListScroll
+
+-- Swatch colors per theme (shown in dropdown rows)
+local THEME_SWATCHES = {
+    Default  = { Color3.fromRGB(215,215,215), Color3.fromRGB(120,120,120), Color3.fromRGB(55,55,55) },
+    Amethyst = { Color3.fromRGB(190,100,255), Color3.fromRGB(165,70,230),  Color3.fromRGB(55,30,80)  },
+    Ocean    = { Color3.fromRGB(0,210,230),   Color3.fromRGB(0,175,200),   Color3.fromRGB(20,58,80)  },
+}
+
+local themeListOpen = false
+
+local function populateThemeList()
+    for _, child in ipairs(themeListScroll:GetChildren()) do
+        if child:IsA("TextButton") or child:IsA("Frame") then child:Destroy() end
+    end
+
+    for idx, theme in ipairs(THEMES) do
+        local row = Instance.new("TextButton")
+        row.Size = UDim2.new(1, 0, 0, THEME_ROW_H)
+        row.Position = UDim2.new(0, 0, 0, (idx - 1) * THEME_ROW_H)
+        row.BackgroundTransparency = (theme.id == currentTheme.id) and 0 or 1
+        row.BackgroundColor3 = currentTheme.sideSelected
+        row.Text = ""
+        row.ZIndex = 6
+        row.Parent = themeListScroll
+
+        -- Theme name label
+        local nameLbl = Instance.new("TextLabel")
+        nameLbl.Size = UDim2.new(1, -70, 1, 0)
+        nameLbl.Position = UDim2.new(0, 10, 0, 0)
+        nameLbl.BackgroundTransparency = 1
+        nameLbl.Text = theme.name
+        nameLbl.TextColor3 = (theme.id == currentTheme.id) and currentTheme.labelSel or Color3.fromRGB(185,185,185)
+        nameLbl.Font = Enum.Font.SourceSansBold
+        nameLbl.TextSize = 13
+        nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+        nameLbl.ZIndex = 7
+        nameLbl.Parent = row
+
+        -- Swatches
+        local swatches = THEME_SWATCHES[theme.id] or {}
+        for si, sc in ipairs(swatches) do
+            local sw = Instance.new("Frame")
+            sw.Size = UDim2.new(0, 12, 0, 12)
+            sw.Position = UDim2.new(1, -10 - (3 - si) * 16, 0.5, -6)
+            sw.BackgroundColor3 = sc
+            sw.BorderSizePixel = 0
+            sw.ZIndex = 7
+            sw.Parent = row
+            local swc = Instance.new("UICorner")
+            swc.CornerRadius = UDim.new(1, 0)
+            swc.Parent = sw
+        end
+
+        row.MouseEnter:Connect(function()
+            if theme.id ~= currentTheme.id then
+                row.BackgroundTransparency = 0
+                row.BackgroundColor3 = currentTheme.sideHover
+            end
+        end)
+        row.MouseLeave:Connect(function()
+            if theme.id ~= currentTheme.id then
+                row.BackgroundTransparency = 1
+            end
+        end)
+
+        local capturedTheme = theme
+        row.MouseButton1Click:Connect(function()
+            themeListOpen = false
+            themeListScroll.Visible = false
+            themePickerBtn.Text = "Change Theme  ▾"
+            applyTheme(capturedTheme)
+            currentThemeLabel.Text = "Theme: " .. capturedTheme.name
+        end)
+    end
+end
+
+themePickerBtn.MouseEnter:Connect(function()
+    if not themeListOpen then
+        TweenService:Create(themePickerBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(
+                math.clamp(themeBtnBgRef.color.R * 255 + 18, 0, 255),
+                math.clamp(themeBtnBgRef.color.G * 255 + 18, 0, 255),
+                math.clamp(themeBtnBgRef.color.B * 255 + 18, 0, 255)
+            ),
+        }):Play()
+    end
+end)
+themePickerBtn.MouseLeave:Connect(function()
+    if not themeListOpen then
+        TweenService:Create(themePickerBtn, TweenInfo.new(0.1), { BackgroundColor3 = themeBtnBgRef.color }):Play()
+    end
+end)
+
+themePickerBtn.MouseButton1Click:Connect(function()
+    themeListOpen = not themeListOpen
+    if themeListOpen then
+        populateThemeList()
+        themeListScroll.Visible = true
+        themePickerBtn.Text = "Change Theme  ▴"
+        sScroll.CanvasSize = UDim2.new(0, 0, 0, THEME_LIST_Y + THEME_LIST_H + 12)
+        TweenService:Create(themePickerBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(
+                math.clamp(themeBtnBgRef.color.R * 255 - 10, 0, 255),
+                math.clamp(themeBtnBgRef.color.G * 255 - 10, 0, 255),
+                math.clamp(themeBtnBgRef.color.B * 255 - 10, 0, 255)
+            ),
+        }):Play()
+    else
+        themeListScroll.Visible = false
+        themePickerBtn.Text = "Change Theme  ▾"
+        sScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
+        TweenService:Create(themePickerBtn, TweenInfo.new(0.1), { BackgroundColor3 = themeBtnBgRef.color }):Play()
+    end
+end)
+
+-- =========================
+-- CREDITS PAGE
+-- =========================
+
+local credPage = pageFrames["Credits"]
+makePageTitle(credPage, "CREDITS")
+local cs = Instance.new("TextLabel")
+cs.Size = UDim2.new(1, 0, 1, -50)
+cs.Position = UDim2.new(0, 0, 0, 50)
+cs.BackgroundTransparency = 1
+cs.Text = "Coming Soon"
+cs.TextColor3 = Color3.fromRGB(62, 62, 62)
+cs.Font = Enum.Font.SourceSansItalic
+cs.TextSize = 13
+cs.ZIndex = 3
+cs.Parent = credPage
+
+-- =========================
+-- APPLY THEME  (defined here — all UI refs now exist)
+-- =========================
+
+applyTheme = function(theme)
+    currentTheme = theme
+
+    -- Menu background + optional gradient
+    menu.BackgroundColor3 = theme.menuBg
+    if theme.gradient then
+        if not menuGradient then
+            menuGradient = Instance.new("UIGradient")
+            menuGradient.Parent = menu
+        end
+        menuGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, theme.gradColor0),
+            ColorSequenceKeypoint.new(1, theme.gradColor1),
+        })
+        menuGradient.Rotation = 135
+        menuGradient.Enabled = true
+
+        if not sidebarGradient then
+            sidebarGradient = Instance.new("UIGradient")
+            sidebarGradient.Parent = sidebar
+        end
+        sidebarGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(
+                math.clamp(theme.gradColor0.R * 255 - 8, 0, 255),
+                math.clamp(theme.gradColor0.G * 255 - 8, 0, 255),
+                math.clamp(theme.gradColor0.B * 255 - 8, 0, 255)
+            )),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(
+                math.clamp(theme.gradColor1.R * 255 - 8, 0, 255),
+                math.clamp(theme.gradColor1.G * 255 - 8, 0, 255),
+                math.clamp(theme.gradColor1.B * 255 - 8, 0, 255)
+            )),
+        })
+        sidebarGradient.Rotation = 135
+        sidebarGradient.Enabled = true
+    else
+        if menuGradient    then menuGradient.Enabled    = false end
+        if sidebarGradient then sidebarGradient.Enabled = false end
+    end
+
+    -- Structural frames
+    topBar.BackgroundColor3    = theme.topBarBg
+    sidebar.BackgroundColor3   = theme.sidebarBg
+    sideDivider.BackgroundColor3 = theme.divider
+    menuStroke.Color           = theme.stroke
+
+    -- Sidebar buttons
+    for id, btn in pairs(sidebarBtns) do
+        local sel = (id == currentPage)
+        btn.item.BackgroundColor3  = sel and theme.sideSelected or theme.sideNormal
+        btn.accent.BackgroundColor3 = theme.accent
+        btn.lbl.TextColor3         = sel and theme.labelSel or theme.labelNorm
+    end
+
+    -- Toggles
+    for _, t in ipairs(themedRefs.toggles) do
+        if t.track and t.track.Parent then
+            t.track.BackgroundColor3 = t.getState() and theme.toggleOn or theme.toggleOff
+        end
+    end
+
+    -- Sliders
+    for _, f in ipairs(themedRefs.sliderFills) do
+        if f and f.Parent then f.BackgroundColor3 = theme.sliderFill end
+    end
+    for _, t in ipairs(themedRefs.sliderTracks) do
+        if t and t.Parent then t.BackgroundColor3 = theme.sliderTrack end
+    end
+
+    -- Buttons (all use theme.btnBg)
+    for _, b in ipairs(themedRefs.buttons) do
+        if b.btn and b.btn.Parent then
+            b.bgRef.color = theme.btnBg
+            b.btn.BackgroundColor3 = theme.btnBg
+        end
+    end
+
+    -- Page title labels
+    for _, lbl in ipairs(themedRefs.pageTitles) do
+        if lbl and lbl.Parent then lbl.TextColor3 = theme.pageTitle end
+    end
+
+    -- Dividers
+    for _, div in ipairs(themedRefs.pageDividers) do
+        if div and div.Parent then div.BackgroundColor3 = theme.divider end
+    end
+
+    -- Target page dropdown
+    if playerListScroll and playerListScroll.Parent then
+        playerListScroll.BackgroundColor3 = theme.dropdownBg
+        pls.Color = theme.dropdownStroke
+    end
+
+    -- Settings page dropdown
+    if themeListScroll and themeListScroll.Parent then
+        themeListScroll.BackgroundColor3 = theme.dropdownBg
+        tls.Color = theme.dropdownStroke
+    end
 end
 
 -- =========================
@@ -1074,7 +1500,7 @@ local function showHint(text)
 end
 
 -- =========================
--- FADE HELPER (cancel-token safe)
+-- FADE HELPER
 -- =========================
 
 local fadeToken = 0
@@ -1280,7 +1706,6 @@ RunService.RenderStepped:Connect(function()
     local camera = workspace.CurrentCamera
     local inset  = game:GetService("GuiService"):GetGuiInset()
 
-    -- Skeleton lines
     for player, data in pairs(tracked) do
         if not data.bones then continue end
         local char    = player.Character
@@ -1324,30 +1749,17 @@ RunService.RenderStepped:Connect(function()
             local cam = workspace.CurrentCamera
             local cf  = cam.CFrame
             local dir = Vector3.zero
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                dir = dir + cf.LookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                dir = dir - cf.LookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                dir = dir - cf.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                dir = dir + cf.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                dir = dir + Vector3.new(0, 1, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                dir = dir - Vector3.new(0, 1, 0)
-            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.W)         then dir = dir + cf.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S)         then dir = dir - cf.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A)         then dir = dir - cf.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D)         then dir = dir + cf.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space)     then dir = dir + Vector3.new(0,1,0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then dir = dir - Vector3.new(0,1,0) end
             flyBV.Velocity = dir.Magnitude > 0 and dir.Unit * FLY_SPEED or Vector3.zero
             if flyBG and flyBG.Parent then
                 flyBG.CFrame = CFrame.new(hrp.Position, hrp.Position + cf.LookVector)
             end
         elseif not hrp then
-            -- Character died/reset while flying; clean up motor state
             if flyBV and flyBV.Parent then flyBV:Destroy() end
             if flyBG and flyBG.Parent then flyBG:Destroy() end
             flyBV, flyBG = nil, nil
@@ -1360,7 +1772,6 @@ end)
 -- =========================
 
 RunService.Heartbeat:Connect(function()
-    -- Hitbox size enforcement (only when showHitboxes is on)
     for player, data in pairs(tracked) do
         if not player or not player.Parent then continue end
         local char = player.Character
@@ -1380,7 +1791,6 @@ task.spawn(function()
     while true do
         task.wait(0.1)
 
-        -- Walk speed enforcement
         if walkSpeed ~= 16 then
             local char = localPlayer.Character
             if char then
@@ -1389,12 +1799,10 @@ task.spawn(function()
             end
         end
 
-        -- Restore flight on character respawn
         if isFlying then
             local char = localPlayer.Character
             if char then
                 local hrp = char:FindFirstChild("HumanoidRootPart")
-                -- If flyBV is gone but we're supposed to be flying, re-attach
                 if hrp and (not flyBV or not flyBV.Parent) then
                     startFlight()
                 end
@@ -1504,7 +1912,6 @@ local function applyESP(player, character)
     healthLabel.Visible = showHealth
     healthLabel.Parent = container
 
-    -- Only resize HRP if hitboxes are enabled
     if showHitboxes then
         hrp.Size = Vector3.new(2, 2, 2) * hitboxScale
     end
