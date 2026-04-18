@@ -48,6 +48,8 @@ local THEMES = {
         dropdownBg    = Color3.fromRGB(27,27,27),
         dropdownStroke= Color3.fromRGB(60,60,60),
         gradient      = false,
+        font          = Enum.Font.SourceSans,
+        fontBold      = Enum.Font.SourceSansBold,
     },
     {
         id = "Amethyst", name = "Amethyst",
@@ -73,6 +75,8 @@ local THEMES = {
         gradient      = true,
         gradColor0    = Color3.fromRGB(28,18,42),
         gradColor1    = Color3.fromRGB(52,16,76),
+        font          = Enum.Font.SourceSans,
+        fontBold      = Enum.Font.SourceSansBold,
     },
     {
         id = "Ocean", name = "Ocean",
@@ -98,6 +102,62 @@ local THEMES = {
         gradient      = true,
         gradColor0    = Color3.fromRGB(0,126,167),
         gradColor1    = Color3.fromRGB(13,75,105),
+        font          = Enum.Font.SourceSans,
+        fontBold      = Enum.Font.SourceSansBold,
+    },
+    {
+        id = "Sapphire", name = "Sapphire",
+        menuBg        = Color3.fromRGB(10,18,40),
+        topBarBg      = Color3.fromRGB(6,10,28),
+        sidebarBg     = Color3.fromRGB(8,14,34),
+        divider       = Color3.fromRGB(30,60,130),
+        stroke        = Color3.fromRGB(60,130,255),
+        accent        = Color3.fromRGB(60,130,255),
+        sideSelected  = Color3.fromRGB(20,45,110),
+        sideHover     = Color3.fromRGB(15,30,80),
+        sideNormal    = Color3.fromRGB(8,14,34),
+        labelSel      = Color3.fromRGB(160,200,255),
+        labelNorm     = Color3.fromRGB(70,110,190),
+        pageTitle     = Color3.fromRGB(80,150,255),
+        toggleOn      = Color3.fromRGB(40,100,230),
+        toggleOff     = Color3.fromRGB(20,45,110),
+        sliderFill    = Color3.fromRGB(70,140,255),
+        sliderTrack   = Color3.fromRGB(20,45,110),
+        btnBg         = Color3.fromRGB(18,50,130),
+        dropdownBg    = Color3.fromRGB(8,14,40),
+        dropdownStroke= Color3.fromRGB(40,80,180),
+        gradient      = true,
+        gradColor0    = Color3.fromRGB(10,18,40),
+        gradColor1    = Color3.fromRGB(18,10,60),
+        font          = Enum.Font.SourceSans,
+        fontBold      = Enum.Font.SourceSansBold,
+    },
+    {
+        id = "Matrix", name = "Matrix",
+        menuBg        = Color3.fromRGB(0,12,0),
+        topBarBg      = Color3.fromRGB(0,6,0),
+        sidebarBg     = Color3.fromRGB(0,10,0),
+        divider       = Color3.fromRGB(0,55,0),
+        stroke        = Color3.fromRGB(0,200,0),
+        accent        = Color3.fromRGB(0,200,0),
+        sideSelected  = Color3.fromRGB(0,38,0),
+        sideHover     = Color3.fromRGB(0,26,0),
+        sideNormal    = Color3.fromRGB(0,10,0),
+        labelSel      = Color3.fromRGB(0,255,70),
+        labelNorm     = Color3.fromRGB(0,130,30),
+        pageTitle     = Color3.fromRGB(0,190,45),
+        toggleOn      = Color3.fromRGB(0,160,30),
+        toggleOff     = Color3.fromRGB(0,38,0),
+        sliderFill    = Color3.fromRGB(0,200,50),
+        sliderTrack   = Color3.fromRGB(0,38,0),
+        btnBg         = Color3.fromRGB(0,38,10),
+        dropdownBg    = Color3.fromRGB(0,8,0),
+        dropdownStroke= Color3.fromRGB(0,80,20),
+        gradient      = true,
+        gradColor0    = Color3.fromRGB(0,12,0),
+        gradColor1    = Color3.fromRGB(0,22,5),
+        font          = Enum.Font.Code,
+        fontBold      = Enum.Font.Code,
     },
 }
 
@@ -110,12 +170,12 @@ local themedRefs = {
     buttons      = {},
     pageTitles   = {},
     pageDividers = {},
+    textNormal   = {},
+    textBold     = {},
 }
 
 local menuGradient    = nil
 local sidebarGradient = nil
-
--- Corner fill references (updated by applyTheme)
 local topBarBottomFill = nil
 local sbarRightFill    = nil
 local sbarTopFill      = nil
@@ -205,7 +265,6 @@ loadBg.BackgroundColor3 = Color3.fromRGB(20,20,20)
 loadBg.BorderSizePixel = 0
 loadBg.ZIndex = 1
 loadBg.Parent = loadGui
-
 Instance.new("UICorner", loadBg).CornerRadius = UDim.new(0,8)
 local loadStroke = Instance.new("UIStroke")
 loadStroke.Color = Color3.fromRGB(255,255,255)
@@ -300,7 +359,7 @@ menuStroke.Color = currentTheme.stroke
 menuStroke.Thickness = 1.2
 menuStroke.Parent = menu
 
--- TOP BAR — UICorner for top rounded corners, fill strip to square off bottom corners
+-- TOP BAR
 local topBar = Instance.new("Frame")
 topBar.Size = UDim2.new(1,0,0,29)
 topBar.Position = UDim2.new(0,0,0,0)
@@ -308,12 +367,7 @@ topBar.BackgroundColor3 = currentTheme.topBarBg
 topBar.BorderSizePixel = 0
 topBar.ZIndex = 2
 topBar.Parent = menu
-
-local topBarCorner = Instance.new("UICorner")
-topBarCorner.CornerRadius = UDim.new(0,6)
-topBarCorner.Parent = topBar
-
--- Fill the bottom 6px of topBar to make its bottom corners square
+Instance.new("UICorner", topBar).CornerRadius = UDim.new(0,6)
 topBarBottomFill = Instance.new("Frame")
 topBarBottomFill.Size = UDim2.new(1,0,0,6)
 topBarBottomFill.Position = UDim2.new(0,0,1,-6)
@@ -333,6 +387,7 @@ titleLabel.Font = Enum.Font.SourceSansBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.ZIndex = 3
 titleLabel.Parent = topBar
+table.insert(themedRefs.textBold, titleLabel)
 
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0,28,1,0)
@@ -344,6 +399,7 @@ minimizeBtn.TextSize = 18
 minimizeBtn.Font = Enum.Font.SourceSansBold
 minimizeBtn.ZIndex = 3
 minimizeBtn.Parent = topBar
+table.insert(themedRefs.textBold, minimizeBtn)
 
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0,28,1,0)
@@ -355,9 +411,9 @@ closeBtn.TextSize = 13
 closeBtn.Font = Enum.Font.SourceSansBold
 closeBtn.ZIndex = 3
 closeBtn.Parent = topBar
+table.insert(themedRefs.textBold, closeBtn)
 
--- SIDEBAR — UICorner for bottom-left rounded corner
--- Right fill and top fill make the other corners square
+-- SIDEBAR
 local sidebar = Instance.new("Frame")
 sidebar.Size = UDim2.new(0,85,1,-29)
 sidebar.Position = UDim2.new(0,0,0,29)
@@ -365,12 +421,7 @@ sidebar.BackgroundColor3 = currentTheme.sidebarBg
 sidebar.BorderSizePixel = 0
 sidebar.ZIndex = 2
 sidebar.Parent = menu
-
-local sidebarCorner = Instance.new("UICorner")
-sidebarCorner.CornerRadius = UDim.new(0,6)
-sidebarCorner.Parent = sidebar
-
--- Square off the right edge (top-right and bottom-right corners of sidebar are internal)
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0,6)
 sbarRightFill = Instance.new("Frame")
 sbarRightFill.Size = UDim2.new(0,6,1,0)
 sbarRightFill.Position = UDim2.new(1,-6,0,0)
@@ -378,8 +429,6 @@ sbarRightFill.BackgroundColor3 = currentTheme.sidebarBg
 sbarRightFill.BorderSizePixel = 0
 sbarRightFill.ZIndex = sidebar.ZIndex
 sbarRightFill.Parent = sidebar
-
--- Square off the top edge (top-left corner of sidebar is internal, above the menu corner zone)
 sbarTopFill = Instance.new("Frame")
 sbarTopFill.Size = UDim2.new(1,0,0,6)
 sbarTopFill.Position = UDim2.new(0,0,0,0)
@@ -464,6 +513,7 @@ for i, sec in ipairs(sidebarSections) do
     lbl.TextSize = 12
     lbl.ZIndex = 3
     lbl.Parent = item
+    table.insert(themedRefs.textBold, lbl)
 
     local hitBtn = Instance.new("TextButton")
     hitBtn.Size = UDim2.new(1,0,1,0)
@@ -512,6 +562,7 @@ local function makeToggle(parent, labelText, yPos, defaultOn, onChange)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.ZIndex = 3
     label.Parent = parent
+    table.insert(themedRefs.textNormal, label)
 
     local track = Instance.new("Frame")
     track.Size = UDim2.new(0,44,0,24)
@@ -579,6 +630,7 @@ local function makeSlider(parent, labelText, yPos)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.ZIndex = 3
     label.Parent = parent
+    table.insert(themedRefs.textNormal, label)
 
     local track = Instance.new("Frame")
     track.Size = UDim2.new(1,-20,0,8)
@@ -665,6 +717,7 @@ local function makeButton(parent, labelText, yPos, bgColor)
     btn.TextSize = 13
     btn.ZIndex = 3
     btn.Parent = parent
+    table.insert(themedRefs.textBold, btn)
 
     btn.MouseEnter:Connect(function()
         local col = bgRef.color
@@ -700,6 +753,7 @@ local function makePageTitle(page, text)
     title.ZIndex = 3
     title.Parent = page
     table.insert(themedRefs.pageTitles, title)
+    table.insert(themedRefs.textBold, title)
 
     local line = Instance.new("Frame")
     line.Size = UDim2.new(1,-14,0,1)
@@ -800,6 +854,35 @@ local tPage = pageFrames["Target"]
 makePageTitle(tPage, "TARGET")
 
 local selectedTarget = nil
+local isSpectating   = false
+local spectateConn   = nil
+
+local function stopSpectate()
+    isSpectating = false
+    if spectateConn then spectateConn:Disconnect(); spectateConn = nil end
+    local myChar = localPlayer.Character
+    if myChar then
+        local hum = myChar:FindFirstChildOfClass("Humanoid")
+        if hum then workspace.CurrentCamera.CameraSubject = hum end
+    end
+end
+
+local function startSpectate(target)
+    if not target then return end
+    local char = target.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    stopSpectate()
+    workspace.CurrentCamera.CameraSubject = hum
+    isSpectating = true
+    spectateConn = target.CharacterAdded:Connect(function(newChar)
+        local newHum = newChar:WaitForChild("Humanoid", 5)
+        if newHum and isSpectating then
+            workspace.CurrentCamera.CameraSubject = newHum
+        end
+    end)
+end
 
 local tScroll = Instance.new("ScrollingFrame")
 tScroll.Size = UDim2.new(1,0,1,-35)
@@ -824,6 +907,7 @@ selectBtn.Font = Enum.Font.SourceSansBold
 selectBtn.TextSize = 13
 selectBtn.ZIndex = 3
 selectBtn.Parent = tScroll
+table.insert(themedRefs.textBold, selectBtn)
 
 local selectBtnBgRef = {color = currentTheme.btnBg}
 table.insert(themedRefs.buttons, {btn=selectBtn, bgRef=selectBtnBgRef})
@@ -839,6 +923,7 @@ selectedLabel.TextSize = 12
 selectedLabel.TextXAlignment = Enum.TextXAlignment.Left
 selectedLabel.ZIndex = 3
 selectedLabel.Parent = tScroll
+table.insert(themedRefs.textNormal, selectedLabel)
 
 local ROW_H      = 26
 local MAX_LIST_H = 104
@@ -879,15 +964,19 @@ table.insert(themedRefs.pageDividers, actDivider)
 local teleportBtn = makeButton(tScroll, "Teleport to Target", 0, nil)
 teleportBtn.ZIndex = 3
 
+local spectateBtn = makeButton(tScroll, "Spectate Target", 0, nil)
+spectateBtn.ZIndex = 3
+
 local flingBtn = makeButton(tScroll, "Fling Target", 0, nil)
 flingBtn.ZIndex = 3
 
 local function updateActionPositions(listH)
     local actY = LIST_Y + listH + (listH > 0 and 8 or 4)
-    actDivider.Position  = UDim2.new(0,7,0,actY-2)
-    teleportBtn.Position = UDim2.new(0,10,0,actY+2)
-    flingBtn.Position    = UDim2.new(0,10,0,actY+38)
-    tScroll.CanvasSize   = UDim2.new(0,0,0,actY+38+28+8)
+    actDivider.Position  = UDim2.new(0,7,  0, actY-2)
+    teleportBtn.Position = UDim2.new(0,10, 0, actY+2)
+    spectateBtn.Position = UDim2.new(0,10, 0, actY+38)
+    flingBtn.Position    = UDim2.new(0,10, 0, actY+74)
+    tScroll.CanvasSize   = UDim2.new(0,0,0, actY+74+28+8)
 end
 updateActionPositions(0)
 
@@ -947,6 +1036,10 @@ local function refreshPlayerList()
                 updateActionPositions(0)
                 selectBtn.BackgroundColor3 = currentTheme.btnBg
                 selectBtnBgRef.color = currentTheme.btnBg
+                if isSpectating then
+                    stopSpectate()
+                    spectateBtn.Text = "Spectate Target"
+                end
             end)
         end
     end
@@ -1002,6 +1095,17 @@ teleportBtn.MouseButton1Click:Connect(function()
     myHRP.CFrame = tHRP.CFrame + Vector3.new(0,3,0)
 end)
 
+spectateBtn.MouseButton1Click:Connect(function()
+    if not selectedTarget then return end
+    if isSpectating then
+        stopSpectate()
+        spectateBtn.Text = "Spectate Target"
+    else
+        startSpectate(selectedTarget)
+        spectateBtn.Text = "Stop Spectating"
+    end
+end)
+
 flingBtn.MouseButton1Click:Connect(function()
     if not selectedTarget then return end
     local myChar = localPlayer.Character
@@ -1020,6 +1124,10 @@ Players.PlayerRemoving:Connect(function(player)
     if selectedTarget == player then
         selectedTarget = nil
         selectedLabel.Text = "Selected: none"
+        if isSpectating then
+            stopSpectate()
+            spectateBtn.Text = "Spectate Target"
+        end
     end
     if listOpen then refreshPlayerList() end
 end)
@@ -1031,14 +1139,12 @@ end)
 local mPage = pageFrames["Movement"]
 makePageTitle(mPage, "MOVEMENT")
 
--- Walk Speed slider — always visible at y=36
 local wsSlider = makeSlider(mPage, "Walk Speed: 16", 36)
 connectSlider(wsSlider, function(alpha)
     walkSpeed = math.floor(16 + alpha*(300-16))
     wsSlider.label.Text = "Walk Speed: "..walkSpeed
 end)
 
--- Flight Speed slider — created at y=74, hidden until Flight is armed
 local fsSlider = makeSlider(mPage, "Flight Speed: 60", 74)
 fsSlider.label.Visible = false
 fsSlider.track.Visible = false
@@ -1047,28 +1153,25 @@ connectSlider(fsSlider, function(alpha)
     fsSlider.label.Text = "Flight Speed: "..FLY_SPEED
 end)
 
--- Divider, Infinite Jump, Flight toggle, and hint all shift down by 38px when
--- the flight speed slider is visible. Default positions assume it is hidden.
-local mDivider   = makeDivider(mPage, 74)
-local ijToggle   = makeToggle(mPage, "Infinite Jump", 82, false, function(state)
+local mDivider = makeDivider(mPage, 74)
+local ijToggle = makeToggle(mPage, "Infinite Jump", 82, false, function(state)
     infiniteJump = state
 end)
 
-local flightToggle -- forward-declared; assigned below
+local flightToggle
 
 local function updateMovementLayout(armed)
     local o = armed and 38 or 0
     fsSlider.label.Visible = armed
     fsSlider.track.Visible = armed
-    mDivider.Position            = UDim2.new(0,7,  0, 74  + o)
-    ijToggle.label.Position      = UDim2.new(0,10, 0, 82  + o)
-    ijToggle.track.Position      = UDim2.new(1,-54, 0, 83  + o)
-    flightToggle.label.Position  = UDim2.new(0,10, 0, 116 + o)
-    flightToggle.track.Position  = UDim2.new(1,-54, 0, 117 + o)
+    mDivider.Position           = UDim2.new(0,7,  0, 74  + o)
+    ijToggle.label.Position     = UDim2.new(0,10, 0, 82  + o)
+    ijToggle.track.Position     = UDim2.new(1,-54, 0, 83  + o)
+    flightToggle.label.Position = UDim2.new(0,10, 0, 116 + o)
+    flightToggle.track.Position = UDim2.new(1,-54, 0, 117 + o)
     flightToggle.label.Text = armed and "Flight  (T to toggle)" or "Flight"
 end
 
--- Flight toggle — turning it ON immediately starts flying AND shows the slider
 flightToggle = makeToggle(mPage, "Flight", 116, false, function(state)
     flightArmed = state
     updateMovementLayout(state)
@@ -1133,6 +1236,7 @@ themeSection.TextXAlignment = Enum.TextXAlignment.Left
 themeSection.ZIndex = 3
 themeSection.Parent = sScroll
 table.insert(themedRefs.pageTitles, themeSection)
+table.insert(themedRefs.textBold, themeSection)
 
 local themeBtnBgRef = {color = currentTheme.btnBg}
 
@@ -1148,6 +1252,7 @@ themePickerBtn.TextSize = 13
 themePickerBtn.ZIndex = 3
 themePickerBtn.Parent = sScroll
 table.insert(themedRefs.buttons, {btn=themePickerBtn, bgRef=themeBtnBgRef})
+table.insert(themedRefs.textBold, themePickerBtn)
 
 local currentThemeLabel = Instance.new("TextLabel")
 currentThemeLabel.Size = UDim2.new(1,-20,0,18)
@@ -1160,6 +1265,7 @@ currentThemeLabel.TextSize = 12
 currentThemeLabel.TextXAlignment = Enum.TextXAlignment.Left
 currentThemeLabel.ZIndex = 3
 currentThemeLabel.Parent = sScroll
+table.insert(themedRefs.textNormal, currentThemeLabel)
 
 local THEME_LIST_Y = 80
 local THEME_ROW_H  = 32
@@ -1188,7 +1294,6 @@ local function populateThemeList()
     for _, child in ipairs(themeListScroll:GetChildren()) do
         if child:IsA("TextButton") or child:IsA("Frame") then child:Destroy() end
     end
-
     for idx, theme in ipairs(THEMES) do
         local row = Instance.new("TextButton")
         row.Size = UDim2.new(1,0,0,THEME_ROW_H)
@@ -1205,7 +1310,7 @@ local function populateThemeList()
         nameLbl.BackgroundTransparency = 1
         nameLbl.Text = theme.name
         nameLbl.TextColor3 = (theme.id == currentTheme.id) and currentTheme.labelSel or Color3.fromRGB(185,185,185)
-        nameLbl.Font = Enum.Font.SourceSansBold
+        nameLbl.Font = theme.fontBold
         nameLbl.TextSize = 13
         nameLbl.TextXAlignment = Enum.TextXAlignment.Left
         nameLbl.ZIndex = 7
@@ -1324,15 +1429,13 @@ applyTheme = function(theme)
         if sidebarGradient then sidebarGradient.Enabled = false end
     end
 
-    topBar.BackgroundColor3      = theme.topBarBg
+    topBar.BackgroundColor3           = theme.topBarBg
     topBarBottomFill.BackgroundColor3 = theme.topBarBg
-
-    sidebar.BackgroundColor3     = theme.sidebarBg
-    sbarRightFill.BackgroundColor3 = theme.sidebarBg
-    sbarTopFill.BackgroundColor3   = theme.sidebarBg
-
-    sideDivider.BackgroundColor3 = theme.divider
-    menuStroke.Color             = theme.stroke
+    sidebar.BackgroundColor3          = theme.sidebarBg
+    sbarRightFill.BackgroundColor3    = theme.sidebarBg
+    sbarTopFill.BackgroundColor3      = theme.sidebarBg
+    sideDivider.BackgroundColor3      = theme.divider
+    menuStroke.Color                  = theme.stroke
 
     for id, btn in pairs(sidebarBtns) do
         local sel = (id == currentPage)
@@ -1363,6 +1466,12 @@ applyTheme = function(theme)
     end
     for _, div in ipairs(themedRefs.pageDividers) do
         if div and div.Parent then div.BackgroundColor3 = theme.divider end
+    end
+    for _, obj in ipairs(themedRefs.textNormal) do
+        if obj and obj.Parent then obj.Font = theme.font end
+    end
+    for _, obj in ipairs(themedRefs.textBold) do
+        if obj and obj.Parent then obj.Font = theme.fontBold end
     end
 
     if playerListScroll and playerListScroll.Parent then
@@ -1527,6 +1636,7 @@ end)
 closeBtn.MouseButton1Click:Connect(function()
     enabled = false
     if isFlying then stopFlight() end
+    if isSpectating then stopSpectate() end
     for _, data in pairs(tracked) do
         if data.highlight then pcall(function() data.highlight:Destroy() end) end
         if data.billboard then pcall(function() data.billboard:Destroy() end) end
